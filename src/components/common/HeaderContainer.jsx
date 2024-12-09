@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { logout } from 'lib/redux/modules/user';
 import { useSelector, useDispatch } from 'react-redux';
-import { getMyImg } from 'lib/api/my';
 import Header from "../Landing/Header";
+import {logout} from "../../lib/redux/modules/user";
+import {getMyImg} from "../../lib/api/my";
 
 const HeaderContainer = ({ type }) => {
     const { userState } = useSelector(({ user }) => ({

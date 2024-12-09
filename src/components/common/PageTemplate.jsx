@@ -1,7 +1,7 @@
 import React from 'react';
-import HeaderContainer from 'containers/common/HeaderContainer';
 import styled from 'styled-components';
 import palette from "../../lib/styles/palette";
+import HeaderContainer from "./HeaderContainer";
 
 const Container = styled.div`
   height: 100%;
