@@ -2,6 +2,7 @@ import create from 'zustand';
 import {persist} from "zustand/middleware/persist";
 import * as planAPI from "../api/plan";
 import * as locationAPI from "../api/loaction";
+import {memLocStore} from "./memberLocStore";
 
 export const useStore = create(
     persist(

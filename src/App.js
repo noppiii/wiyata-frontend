@@ -2,12 +2,11 @@ import React, { Suspense, lazy } from 'react';
 import { useRoutes } from 'react-router-dom';
 import Modal from 'react-modal';
 import { createGlobalStyle, css } from 'styled-components';
-import { useScroll } from 'lib/custom/useScroll';
-import Spinner from 'lib/custom/Spinner';
-
+import {useScroll} from "./lib/custom/useScroll";
+import Spinner from "./lib/custom/Spinner";
 // router lazy
 
-const LandingPage = lazy(() => import('pages/OtherPages/LandingPage'));
+const LandingPage = lazy(() => import('./pages/OtherPages/LandingPage'));
 
 const GlobalStyle = createGlobalStyle`
   body::-webkit-scrollbar {

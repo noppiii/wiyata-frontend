@@ -1,6 +1,6 @@
 import React from 'react';
-import LandingForm from 'containers/Other/LandingForm';
 import PageTemplate from "../../components/common/PageTemplate";
+import LandingForm from "../../containers/Other/LandingForm";
 
 const LandingPage = () => {
     return (
