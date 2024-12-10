@@ -165,6 +165,197 @@ export const useStore = create(
                     console.log('sel loc get gagal');
                 }
             },
-        })
+            getPlanDays: async (planId) => {
+                if (get().userTravelDay.status) return;
+                if (planId) {
+                    set({
+                        userTravelDay: {
+                            travelDay: [],
+                            status: true,
+                        },
+                    });
+                }
+                planId = planId ? planId : get().id;
+                const resDay = await planAPI.getPlanDay(planId);
+                const resPlan = await planAPI.getPlan(planId);
+
+                let planLen;
+                if (resPlan && resPlan.httpStatus === 200) {
+                    planLen = resPlan.planForm.periods;
+                } else {
+                    console.log('gagal get plan');
+                    return;
+                }
+                if (resDay && resDay.httpStatus !== 200) {
+                    console.log('gagal get day');
+                    return;
+                }
+                if (!resDay) return;
+
+                let tempDayArr = Array.from({length: planLen}, () => []);
+                let selLocs = await locationAPI.getSelectedLocations(planId);
+                let memLocs = await memLocStore.getState().getMemberLocations();
+                let tmpSelCateLoc = {
+                    ...selLocs.data.blockLocations,
+                    member: memLocs,
+                };
+                for (let i = 0; i < resDay.dayForm.length; i++) {
+                    let tmp = resDay.dayForm[i];
+                    for (let key in tmpSelCateLoc) {
+                        let flag = 0;
+                        for (let j = 0; j < tmpSelCateLoc[key].length; j++) {
+                            if (tmpSelCateLoc[key][j].locationId === tmp.locationId) {
+                                flag = 1;
+                                let idx = tmp.days - 1;
+                                tmp.name = tmpSelCateLoc[key][j].name;
+                                tmp.image = tmpSelCateLoc[key][j].image;
+                                tmp.address1 = tmpSelCateLoc[key][j].address1;
+
+                                if (tempDayArr.length > idx) {
+                                    tempDayArr[idx].push(tmp);
+                                } else {
+                                    tempDayArr.push([tmp]);
+                                }
+                                break;
+                            }
+                        }
+                        if (flag) break;
+                    }
+                }
+                set({
+                    userTravelDay:{
+                        travelDay: tempDayArr,
+                        status: true,
+                    },
+                });
+            },
+            postPlan: async (idx, cP = false) => {
+                const userPlan = get().userPlan;
+                const conceptForm = get().conceptForm;
+                const userTravelDay = get().userTravelDay;
+                const id = get().id;
+
+                if (idx === 0 && cP) {
+                    delete userPlan.thumbnail;
+                    const res = await planAPI.createPlan(userPlan);
+                    if (res && res.planId) {
+                        set({id: res.planId});
+                    } else {
+
+                    }
+                } else if (idx === 0 && id > 0) {
+                    const plan2 = {...userPlan};
+                    typeof plan2.thumbnail !== 'string' && (await planAPI.postThumbnail(id, plan2.thumbnail));
+                    delete plan2.planId;
+                    delete plan2.thumbnail;
+                    await planAPI.postPlan(id, plan2);
+                    await planAPI.postConcept(id, conceptForm);
+                } else if (idx === 0 && !id) {
+                    return 'Silakan tetapkan nama perjalanan';
+                } else if (idx === 1){
+                    let selLocIdArr = get().zipSelLoc(get().selCateLoc);
+                    await locationAPI.postSelectedLocations(id, selLocIdArr);
+                } else if (idx === 2){
+                    if (!userTravelDay.status) {
+                        await planAPI.postPlanDay(userTravelDay, id);
+                    } else {
+                        await planAPI.updatePlanDay(userTravelDay, id);
+                    }
+                } else {
+                    return 'Gagal menyimpan';
+                }
+            },
+        }),
+        {
+            name: 'plan-storage',
+            getStorage: () => sessionStorage,
+        },
+    ),
+);
+
+export const sysLocStore = create(
+    persist(
+        (set, get) => ({
+            sysCateLoc: {
+                Attraction: [],
+                Culture: [],
+                Festival: [],
+                Leports: [],
+                Lodge: [],
+                Restaurant: []
+            },
+            sysCateLocCoords: {},
+            sysBlockFlag: false,
+            sysMarkFlag: false,
+            lat: 33.280701,
+            lng: 126.570667,
+
+            initializeSysCateLocForm: () => {
+                set(() => ({
+                    sysCateLoc: {
+                        Attraction: [],
+                        Culture: [],
+                        Festival: [],
+                        Leports: [],
+                        Lodge: [],
+                        Restaurant: [],
+                    },
+                    sysBlockFlag: false,
+                }))
+            },
+
+            getSysLoc: async () => {
+                if (!get().sysBlockFlag) {
+                    const response = await locationAPI.getBlockLocations();
+                    if (response.status === 200) {
+                        set({
+                            sysCateLoc: response.data,
+                            sysBlockFlag: true,
+                        });
+                    }
+                }
+            },
+
+            getSysLocCoords: async () => {
+                if (!get().sysMarkFlag) {
+                    const response = await locationAPI.getMarkLocations();
+                    if (response.status === 200) {
+                        set({
+                            sysCateLocCoords: response.data,
+                            sysMarkFlag: true,
+                        });
+                    }
+                }
+            },
+
+            setLatLng: (id, type) => {
+                const coordsList = get().sysCateLocCoords[type];
+                const found = coordsList.find((loc) => loc.locationId === id);
+                set({ lat: found.coords.latitude });
+                set({ lng: found.coords.longitude });
+            },
+
+            setLocIsSelect: (type, id, flag) => {
+                let tmpLocArr = get().sysCateLoc[type];
+                let loc = tmpLocArr.find((val) => val.locationId === id);
+
+                if (flag) {
+                    loc.isSelect = true;
+                } else {
+                    loc.isSelect = false;
+                }
+
+                set((state) => ({
+                    sysCateLoc: {
+                        ...state.sysCateLoc,
+                        [type]: tmpLocArr,
+                    },
+                }));
+            },
+        }),
+        {
+            name: 'sysLoc-storage',
+            getStorage: () => sessionStorage,
+        },
     )
 )
